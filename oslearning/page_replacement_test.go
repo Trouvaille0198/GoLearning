@@ -1,11 +1,11 @@
-package main
+package oslearning
 
 import (
 	"fmt"
-	"goLearning/oslearning"
+	"testing"
 )
 
-func main() {
+func TestAlphaReader(t *testing.T) {
 	virtualMemorySize := 32
 	addressNum := 255
 	fmt.Printf(
@@ -15,7 +15,7 @@ func main() {
 		internalSize := (i + 1) * 4 // 每次翻四倍
 		for j := 0; j < 8; j++ {
 			pageSize := j + 1
-			r := oslearning.NewPageReplacer(
+			r := NewPageReplacer(
 				addressNum, virtualMemorySize, pageSize, internalSize)
 			r.DisplayResult()
 		}

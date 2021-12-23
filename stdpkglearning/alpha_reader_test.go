@@ -1,4 +1,4 @@
-package stdPkgLearning
+package stdpkglearning
 
 import (
 	"fmt"
@@ -16,5 +16,4 @@ func TestAlphaReader(t *testing.T) {
 		}
 		fmt.Print(string(p[:length]))
 	}
-
 }

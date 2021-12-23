@@ -1,3 +1,5 @@
+// Package utils
+// @Description: 权重选择
 package utils
 
 // https://github.com/mroth/weightedrand
