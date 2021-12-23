@@ -1,4 +1,4 @@
-package StdPkgLearning
+package stdPkgLearning
 
 // 手动实现的Reader，过滤输入字符串的非字母部分
 

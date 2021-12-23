@@ -1,24 +1,12 @@
 package main
 
-import "fmt"
-
-type People interface {
-	Speak(string) string
-}
-
-type Student struct{}
-
-func (stu *Student) Speak(think string) (talk string) {
-	if think == "sb" {
-		talk = "你是个大帅比"
-	} else {
-		talk = "您好"
-	}
-	return
-}
+import (
+	"fmt"
+	"goLearning/osLearning"
+)
 
 func main() {
-	var peo People = &Student{}
-	think := "bitch"
-	fmt.Println(peo.Speak(think))
+	add1 := osLearning.GetRandomAddresses(255, 4)
+	add2 := osLearning.GetAddressPages(add1, 2)
+	fmt.Println(add1[0], add2[0])
 }

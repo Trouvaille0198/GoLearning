@@ -1,4 +1,4 @@
-package StdPkgLearning
+package stdPkgLearning
 
 import (
 	"fmt"
