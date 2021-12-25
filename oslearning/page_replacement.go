@@ -70,7 +70,7 @@ func (a *AddressStream) GetAddressPages(pageSize int) []int {
 type PageReplacer struct {
 	pageSize     int
 	internalSize int
-	addressPage  []int
+	addressPages []int
 }
 
 // NewPageReplacer
@@ -82,13 +82,13 @@ func NewPageReplacer(
 	addressNum int, virtualMemorySize int, pageSize int, internalSize int) *PageReplacer {
 	addressStream := NewAddressStream(addressNum, virtualMemorySize)
 	addressPage := addressStream.GetAddressPages(pageSize)
-	return &PageReplacer{pageSize: pageSize, addressPage: addressPage, internalSize: internalSize}
+	return &PageReplacer{pageSize: pageSize, addressPages: addressPage, internalSize: internalSize}
 }
 
 func (r PageReplacer) OPT() float32 {
 	internalPages := make([]int, 0) // 记录内存中的页面
 	failCount := 0                  // 未命中次数
-	for i, pageNo := range r.addressPage {
+	for i, pageNo := range r.addressPages {
 		if !utils.IsContainInt(internalPages, pageNo) {
 			// 未命中
 			failCount++
@@ -98,7 +98,7 @@ func (r PageReplacer) OPT() float32 {
 
 				internalPagesCopy := make([]int, r.internalSize)
 				copy(internalPagesCopy, internalPages)
-				for _, afterPageNo := range r.addressPage[i+1:] {
+				for _, afterPageNo := range r.addressPages[i+1:] {
 					if utils.IsContainInt(internalPagesCopy, afterPageNo) {
 						latestPageIndex, _ = utils.GetIndexInt(internalPages, afterPageNo) // 记录当前最迟访问到的页号索引
 						internalPagesCopy, _ = utils.DeleteByElemInt(internalPagesCopy, afterPageNo)
@@ -114,13 +114,13 @@ func (r PageReplacer) OPT() float32 {
 			internalPages = append(internalPages, pageNo)
 		}
 	}
-	return 1 - float32(failCount)/float32(len(r.addressPage))
+	return 1 - float32(failCount)/float32(len(r.addressPages))
 }
 
 func (r PageReplacer) LRU() float32 {
 	internalPages := make([]int, 0) // 记录内存中的页面
 	failCount := 0                  // 未命中次数
-	for _, pageNo := range r.addressPage {
+	for _, pageNo := range r.addressPages {
 		if !utils.IsContainInt(internalPages, pageNo) {
 			// 未命中
 			failCount++
@@ -135,24 +135,24 @@ func (r PageReplacer) LRU() float32 {
 			internalPages = append(internalPages, pageNo)
 		}
 	}
-	return 1 - float32(failCount)/float32(len(r.addressPage))
+	return 1 - float32(failCount)/float32(len(r.addressPages))
 }
 
 func (r PageReplacer) FIFO() float32 {
 	internalPages := make([]int, 0) // 记录内存中的页面
 	failCount := 0                  // 未命中次数
-	for _, pageNo := range r.addressPage {
+	for _, pageNo := range r.addressPages {
 		if !utils.IsContainInt(internalPages, pageNo) {
 			// 未命中
 			failCount++
 			if len(internalPages) == r.internalSize {
-				// 内存已满 将栈底页面淘汰
+				// 内存已满 将队头页面淘汰
 				internalPages, _ = utils.DeleteByIndexInt(internalPages, 0)
 			}
 			internalPages = append(internalPages, pageNo)
 		}
 	}
-	return 1 - float32(failCount)/float32(len(r.addressPage))
+	return 1 - float32(failCount)/float32(len(r.addressPages))
 }
 
 // DisplayResult

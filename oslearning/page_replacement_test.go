@@ -11,8 +11,8 @@ func TestAlphaReader(t *testing.T) {
 	fmt.Printf(
 		"%-10s %-12s %-10s %-10s %-10s \n",
 		"PageSize", "MemorySize", "OPT", "LRU", "FIFO")
-	for i := 0; i < 7; i++ {
-		internalSize := (i + 1) * 4 // 每次翻四倍
+	for i := 1; i <= 8; i++ {
+		internalSize := i * 4 // 每次翻四倍
 		for j := 0; j < 8; j++ {
 			pageSize := j + 1
 			r := NewPageReplacer(
