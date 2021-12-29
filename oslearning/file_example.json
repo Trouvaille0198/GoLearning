@@ -1,0 +1,32 @@
+[
+  {
+    "owner": "Bob",
+    "userFileDirs": [
+      {
+        "name": "a",
+        "proCode": "101",
+        "len": 42
+      },
+      {
+        "name": "b",
+        "proCode": "100",
+        "len": 99
+      }
+    ]
+  },
+  {
+    "owner": "John",
+    "userFileDirs": [
+      {
+        "name": "c",
+        "proCode": "000",
+        "len": 66
+      },
+      {
+        "name": "d",
+        "proCode": "111",
+        "len": 272
+      }
+    ]
+  }
+]

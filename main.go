@@ -1,24 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"goLearning/oslearning"
 )
 
 func main() {
-	virtualMemorySize := 32
-	addressNum := 255
-	fmt.Printf(
-		"%-10s %-12s %-10s %-10s %-10s \n",
-		"PageSize", "MemorySize", "OPT", "LRU", "FIFO")
-	for i := 0; i < 7; i++ {
-		internalSize := (i + 1) * 4 // 每次翻四倍
-		for j := 0; j < 8; j++ {
-			pageSize := j + 1
-			r := oslearning.NewPageReplacer(
-				addressNum, virtualMemorySize, pageSize, internalSize)
-			r.DisplayResult()
-		}
-		fmt.Println()
-	}
+	fileSystem, _ := oslearning.NewFileSystem()
+	fileSystem.ShowUserName()
 }

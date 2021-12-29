@@ -29,25 +29,31 @@ type AddressStream struct {
 // NewAddressStream
 // @param addressNum 指令个数
 // @param virtualMemorySize 虚存大小 以k为单位
-func NewAddressStream(addressNum int, virtualMemorySize int) *AddressStream {
-	virtualMemorySize *= 1024
-	rs := rand.New(rand.NewSource(time.Now().UTC().UnixNano())) // 随机数种子
+// @isRandom 地址流随机生成或使用真实进程的地址流
+func NewAddressStream(addressNum int, virtualMemorySize int, isRandom bool) *AddressStream {
 	addresses := make([]int, addressNum)
-	chooser := getWeightedChooser()
+	virtualMemorySize *= 1024
+	if isRandom {
+		// 随机生成地址流
+		rs := rand.New(rand.NewSource(time.Now().UTC().UnixNano())) // 随机数种子
+		chooser := getWeightedChooser()                             // 权重提取器
 
-	addresses[0] = rs.Intn(virtualMemorySize)
-	for i := 1; i < addressNum; i++ {
-		initForm := chooser.PickSource(rs)
-		switch initForm {
-		case "front":
-			randAddress := rs.Intn(virtualMemorySize / 2)
-			addresses[i] = randAddress
-		case "end":
-			randAddress := rs.Intn(virtualMemorySize/2) + virtualMemorySize/2
-			addresses[i] = randAddress
-		case "prev":
-			addresses[i] = addresses[i-1] + 1
+		addresses[0] = rs.Intn(virtualMemorySize)
+		for i := 1; i < addressNum; i++ {
+			initForm := chooser.PickSource(rs)
+			switch initForm {
+			case "front":
+				randAddress := rs.Intn(virtualMemorySize / 2)
+				addresses[i] = randAddress
+			case "end":
+				randAddress := rs.Intn(virtualMemorySize/2) + virtualMemorySize/2
+				addresses[i] = randAddress
+			case "prev":
+				addresses[i] = addresses[i-1] + 1
+			}
 		}
+	} else {
+		// TODO 采用真实地址流
 	}
 	return &AddressStream{length: addressNum, addresses: addresses}
 }
@@ -78,9 +84,8 @@ type PageReplacer struct {
 // @param virtualMemorySize 虚存大小 以k为单位
 // @param pageSize 页大小 以k为单位
 // @param internalSize 内存能容纳页的个数
-func NewPageReplacer(
-	addressNum int, virtualMemorySize int, pageSize int, internalSize int) *PageReplacer {
-	addressStream := NewAddressStream(addressNum, virtualMemorySize)
+func NewPageReplacer(addressNum int, virtualMemorySize int, pageSize int, internalSize int, isRandom bool) *PageReplacer {
+	addressStream := NewAddressStream(addressNum, virtualMemorySize, isRandom)
 	addressPage := addressStream.GetAddressPages(pageSize)
 	return &PageReplacer{pageSize: pageSize, addressPages: addressPage, internalSize: internalSize}
 }
