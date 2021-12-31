@@ -4,6 +4,7 @@ package oslearning
 // 文件以ufd结构体形式保存
 // 文件以文件名作为唯一索引
 // afd中的number没有实际意义
+// 所有文件数据 都在程序退出后正式写入外存
 
 import (
 	"encoding/json"
@@ -51,20 +52,20 @@ func isZeroOrOne(str string) bool {
 	return true
 }
 
-// Create 创建文件 TODO 写入json文件
+// Create 创建文件
 func (mfd *MainFileDir) Create(name, proCode string) {
 	mfd.UserFileDirs = append(mfd.UserFileDirs, &UserFileDir{Name: name, ProCode: proCode, Len: 0})
 }
 
-// Delete 根据文件名删除文件 TODO 写入json文件
-func (mfd *MainFileDir) Delete(name string) error {
+// Delete 根据文件名删除文件
+func (mfd *MainFileDir) Delete(name string) (*UserFileDir, error) {
 	for i, ufd := range mfd.UserFileDirs {
 		if ufd.Name == name {
 			mfd.UserFileDirs = append(mfd.UserFileDirs[:i], mfd.UserFileDirs[i+1:]...)
-			return nil
+			return ufd, nil
 		}
 	}
-	return errors.New("file not found")
+	return &UserFileDir{}, errors.New("file not found")
 }
 
 // GetFileByName 根据文件名获取文件
@@ -96,6 +97,9 @@ type FileSystem struct {
 	UserName         string           // 用户名
 	OwnerMainFileDir *MainFileDir     // 用户的mfd
 	AccessFileDirs   []*AccessFileDir // 正在运行的文件目录
+
+	MainFileDirs []*MainFileDir // 所有mfd 用于程序退出时更新外存内容
+	FilePath     string         // 外存地址
 }
 
 // NewFileSystem 新建文件管理系统 读取用户与用户文件
@@ -106,13 +110,15 @@ func NewFileSystem(filePath string) (*FileSystem, error) {
 		fmt.Println("Error while opening file: ", err)
 		return &FileSystem{}, errors.New("can't open file_example")
 	}
+	defer fh.Close()
+
 	jsonData, err := ioutil.ReadAll(fh)
 	if err != nil {
 		fmt.Println("Error while reading json: ", err)
 		return &FileSystem{}, errors.New("wrong format with file_example")
 	}
 	// 解析json数据到MFD中
-	mainFileDirs := make([]MainFileDir, 0)
+	mainFileDirs := make([]*MainFileDir, 0)
 	err = json.Unmarshal(jsonData, &mainFileDirs)
 	if err != nil {
 		fmt.Println("Error while converting json: ", err)
@@ -120,7 +126,7 @@ func NewFileSystem(filePath string) (*FileSystem, error) {
 	}
 
 	// 判断用户名是否注册
-	var ownerMainFileDir MainFileDir // 用户的mfd
+	var ownerMainFileDir *MainFileDir // 用户的mfd
 	var userName string
 	for {
 		// 获取来自标准输入的用户名
@@ -145,7 +151,9 @@ func NewFileSystem(filePath string) (*FileSystem, error) {
 		}
 	}
 
-	return &FileSystem{UserName: userName, OwnerMainFileDir: &ownerMainFileDir}, nil
+	return &FileSystem{
+		UserName: userName, MainFileDirs: mainFileDirs,
+		OwnerMainFileDir: ownerMainFileDir, FilePath: filePath}, nil
 }
 
 // ShowFiles 打印文件列表
@@ -216,7 +224,7 @@ func (f *FileSystem) Delete() error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("File %s is deleted", name)
+	fmt.Printf("File %s is deleted \n", name)
 	return nil
 }
 
@@ -292,7 +300,7 @@ func (f *FileSystem) Read() error {
 	return errors.New("file is not in opening file list")
 }
 
-// Read 读文件
+// Write 读文件
 func (f *FileSystem) Write() error {
 	fmt.Println("Enter the name of file to write: ")
 	var name string
@@ -319,6 +327,27 @@ func (f *FileSystem) Write() error {
 		}
 	}
 	return errors.New("file is not in opening file list")
+}
+
+// Update 将文件更新至外存
+func (f *FileSystem) Update() error {
+	fh, err := os.OpenFile(f.FilePath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0644)
+	if err != nil {
+		fmt.Println("Error while opening file: ", err)
+		return errors.New("can't open file_example")
+	}
+	defer fh.Close()
+
+	jsonData, err := json.MarshalIndent(f.MainFileDirs, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	_, err = fh.Write(jsonData)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Run 入口函数
@@ -359,10 +388,20 @@ func (f *FileSystem) Run() {
 				fmt.Println(err)
 			}
 		case READ:
-			fmt.Println("read")
+			err = f.Read()
+			if err != nil {
+				fmt.Println(err)
+			}
 		case WRITE:
-			fmt.Println("write")
+			err = f.Write()
+			if err != nil {
+				fmt.Println(err)
+			}
 		case BYE:
+			err = f.Update()
+			if err != nil {
+				fmt.Println(err)
+			}
 			fmt.Println("See u.")
 			flag = false
 		default:
