@@ -1,5 +1,10 @@
 package oslearning
 
+// 一些情况
+// 文件以ufd结构体形式保存
+// 文件以文件名作为唯一索引
+// afd中的number没有实际意义
+
 import (
 	"encoding/json"
 	"errors"
@@ -11,21 +16,23 @@ import (
 type Command string
 
 const (
-	SHOW   Command = "show"
-	CREATE Command = "create"
-	DELETE Command = "delete"
-	OPEN   Command = "open"
-	CLOSE  Command = "close"
-	READ   Command = "read"
-	WRITE  Command = "write"
-	BYE    Command = "bye"
+	SHOW         Command = "show"
+	SHOW_OPENING Command = "showo"
+	CREATE       Command = "create"
+	DELETE       Command = "delete"
+	OPEN         Command = "open"
+	CLOSE        Command = "close"
+	READ         Command = "read"
+	WRITE        Command = "write"
+	BYE          Command = "bye"
 )
 
-type fileState string
+type FileState string
 
 const (
-	READING fileState = "reading"
-	WRITING fileState = "writing"
+	OPENING FileState = "opening"
+	READING FileState = "reading"
+	WRITING FileState = "writing"
 )
 
 // MainFileDir 主文件目录
@@ -60,6 +67,16 @@ func (mfd *MainFileDir) Delete(name string) error {
 	return errors.New("file not found")
 }
 
+// GetFileByName 根据文件名获取文件
+func (mfd *MainFileDir) GetFileByName(name string) (*UserFileDir, error) {
+	for _, ufd := range mfd.UserFileDirs {
+		if ufd.Name == name {
+			return ufd, nil
+		}
+	}
+	return &UserFileDir{}, errors.New("file not found")
+}
+
 // UserFileDir 用户文件目录
 type UserFileDir struct {
 	Name    string `json:"name"`
@@ -71,8 +88,8 @@ type UserFileDir struct {
 type AccessFileDir struct {
 	Number  int
 	FileDir *UserFileDir
-	ProCode [3]int
-	State   fileState
+	ProCode string
+	State   FileState
 }
 
 type FileSystem struct {
@@ -134,13 +151,35 @@ func NewFileSystem(filePath string) (*FileSystem, error) {
 // ShowFiles 打印文件列表
 func (f *FileSystem) ShowFiles() {
 	fmt.Println("-----------------------------")
-	fmt.Printf("%-10s %-10s %-10s \n", "name", "pro code", "length")
-	for _, ufd := range f.OwnerMainFileDir.UserFileDirs {
-		fmt.Printf("%-10s %-10s %-10d \n", ufd.Name, ufd.ProCode, ufd.Len)
+
+	if len(f.OwnerMainFileDir.UserFileDirs) != 0 {
+		fmt.Printf("%-10s %-10s %-10s \n", "name", "pro code", "length")
+		for _, ufd := range f.OwnerMainFileDir.UserFileDirs {
+			fmt.Printf("%-10s %-10s %-10d \n", ufd.Name, ufd.ProCode, ufd.Len)
+		}
+	} else {
+		fmt.Println("No files.")
+	}
+
+	fmt.Println("-----------------------------")
+}
+
+// ShowOpeningFiles 打印打开的文件列表
+func (f *FileSystem) ShowOpeningFiles() {
+	fmt.Println("-----------------------------")
+	if len(f.AccessFileDirs) != 0 {
+		fmt.Printf("%-10%s %-10s %-10s %-10s \n", "number", "name", "pro code", "length")
+		for _, afd := range f.AccessFileDirs {
+			ufd := afd.FileDir
+			fmt.Printf("%-10d %-10s %-10s %-10d \n", afd.Number, ufd.Name, afd.ProCode, ufd.Len)
+		}
+	} else {
+		fmt.Println("No files.")
 	}
 	fmt.Println("-----------------------------")
 }
 
+// Create 创建文件 TODO 不能同名
 func (f *FileSystem) Create() error {
 	fmt.Println("The new file's name: ")
 	var name string
@@ -164,6 +203,7 @@ func (f *FileSystem) Create() error {
 	return nil
 }
 
+// Delete 删除文件
 func (f *FileSystem) Delete() error {
 	fmt.Println("Enter the name of file to be deleted: ")
 	var name string
@@ -171,12 +211,114 @@ func (f *FileSystem) Delete() error {
 	if err != nil {
 		return err
 	}
+
 	err = f.OwnerMainFileDir.Delete(name)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("File %s is deleted", name)
 	return nil
+}
+
+// Open 打开文件 即将目标文件链接到afd中
+func (f *FileSystem) Open() error {
+	if len(f.AccessFileDirs) > 5 {
+		return errors.New("the amount of opening files is up to 5")
+	}
+	fmt.Println("Enter the name of file to be opened: ")
+	var name string
+	_, err := fmt.Scan(&name)
+	if err != nil {
+		return err
+	}
+
+	ufd, err := f.OwnerMainFileDir.GetFileByName(name)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Enter the open mode: ")
+	var proCode string
+	_, err = fmt.Scan(&proCode)
+	if err != nil {
+		return err
+	}
+
+	fileNumber := len(f.AccessFileDirs) + 1
+	afd := &AccessFileDir{Number: fileNumber, FileDir: ufd, ProCode: proCode}
+	f.AccessFileDirs = append(f.AccessFileDirs, afd)
+
+	fmt.Printf("File %s opened, number %d \n", name, fileNumber)
+	return nil
+}
+
+// Close 关闭文件 即将目标文件从afds中删除
+func (f *FileSystem) Close() error {
+	fmt.Println("Enter the name of file to be closed: ")
+	var name string
+	_, err := fmt.Scan(&name)
+	if err != nil {
+		return err
+	}
+
+	for i, afd := range f.AccessFileDirs {
+		if afd.FileDir.Name == name {
+			f.AccessFileDirs = append(f.AccessFileDirs[:i], f.AccessFileDirs[i+1:]...)
+			return nil
+		}
+	}
+	return errors.New("file is not in opening file list")
+}
+
+// Read 读文件
+func (f *FileSystem) Read() error {
+	fmt.Println("Enter the name of file to read: ")
+	var name string
+	_, err := fmt.Scan(&name)
+	if err != nil {
+		return err
+	}
+
+	for _, afd := range f.AccessFileDirs {
+		if afd.FileDir.Name == name {
+			if afd.ProCode[0] == '0' {
+				return errors.New("file is not allowed to read")
+			}
+			afd.State = READING
+			fmt.Printf("File %s is being read \n", name)
+			return nil
+		}
+	}
+	return errors.New("file is not in opening file list")
+}
+
+// Read 读文件
+func (f *FileSystem) Write() error {
+	fmt.Println("Enter the name of file to write: ")
+	var name string
+	_, err := fmt.Scan(&name)
+	if err != nil {
+		return err
+	}
+
+	for _, afd := range f.AccessFileDirs {
+		if afd.FileDir.Name == name {
+			if afd.ProCode[1] == '0' {
+				return errors.New("file is not allowed to write")
+			}
+			afd.State = WRITING
+			fmt.Println("How many characters to be written into the file? ")
+			var length int
+			_, err = fmt.Scan(&length)
+			if err != nil {
+				return err
+			}
+			afd.FileDir.Len += length
+			fmt.Printf("file %s is written", name)
+			return nil
+		}
+	}
+	return errors.New("file is not in opening file list")
 }
 
 // Run 入口函数
@@ -194,6 +336,8 @@ func (f *FileSystem) Run() {
 		switch command {
 		case SHOW:
 			f.ShowFiles()
+		case SHOW_OPENING:
+			f.ShowOpeningFiles()
 		case CREATE:
 			err = f.Create()
 			if err != nil {
@@ -205,9 +349,15 @@ func (f *FileSystem) Run() {
 				fmt.Println(err)
 			}
 		case OPEN:
-			fmt.Println("open")
+			err = f.Open()
+			if err != nil {
+				fmt.Println(err)
+			}
 		case CLOSE:
-			fmt.Println("close")
+			err = f.Close()
+			if err != nil {
+				fmt.Println(err)
+			}
 		case READ:
 			fmt.Println("read")
 		case WRITE:
