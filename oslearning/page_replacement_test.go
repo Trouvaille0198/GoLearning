@@ -15,8 +15,8 @@ func TestAlphaReader(t *testing.T) {
 		internalSize := i * 4 // 每次翻四倍
 		for j := 0; j < 8; j++ {
 			pageSize := j + 1
-			r := NewPageReplacer(
-				addressNum, virtualMemorySize, pageSize, internalSize)
+			r, _ := NewPageReplacer(
+				addressNum, virtualMemorySize, pageSize, internalSize, false)
 			r.DisplayResult()
 		}
 		fmt.Println()
