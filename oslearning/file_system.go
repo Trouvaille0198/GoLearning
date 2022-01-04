@@ -7,11 +7,14 @@ package oslearning
 // 所有文件数据 都在程序退出后正式写入外存
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
+	"strings"
 )
 
 type Command string
@@ -132,11 +135,10 @@ func NewFileSystem(filePath string) (*FileSystem, error) {
 		// 获取来自标准输入的用户名
 		fmt.Println("Your name is?")
 		_, err = fmt.Scan(&userName)
+		fmt.Scanln() // 吸收回车符
 		if err != nil {
-			fmt.Println("Error while inputting username: ", err)
-			os.Exit(1)
+			log.Fatal("Error while inputting username: ", err)
 		}
-
 		flag := false
 		for _, mfd := range mainFileDirs {
 			if userName == mfd.Owner {
@@ -176,10 +178,10 @@ func (f *FileSystem) ShowFiles() {
 func (f *FileSystem) ShowOpeningFiles() {
 	fmt.Println("-----------------------------")
 	if len(f.AccessFileDirs) != 0 {
-		fmt.Printf("%-10%s %-10s %-10s %-10s \n", "number", "name", "pro code", "length")
+		fmt.Printf("%-10s %-10s %-10s %-10s %-10s \n", "number", "name", "pro code", "length", "state")
 		for _, afd := range f.AccessFileDirs {
 			ufd := afd.FileDir
-			fmt.Printf("%-10d %-10s %-10s %-10d \n", afd.Number, ufd.Name, afd.ProCode, ufd.Len)
+			fmt.Printf("%-10d %-10s %-10s %-10d %10s \n", afd.Number, ufd.Name, afd.ProCode, ufd.Len, afd.State)
 		}
 	} else {
 		fmt.Println("No files.")
@@ -187,18 +189,26 @@ func (f *FileSystem) ShowOpeningFiles() {
 	fmt.Println("-----------------------------")
 }
 
-// Create 创建文件 TODO 不能同名
+// Create 创建文件
 func (f *FileSystem) Create() error {
 	fmt.Println("The new file's name: ")
 	var name string
 	_, err := fmt.Scan(&name)
+	fmt.Scanln()
 	if err != nil {
 		return err
+	}
+	// 检查文件名是否重复
+	for _, ufd := range f.OwnerMainFileDir.UserFileDirs {
+		if ufd.Name == name {
+			return errors.New("file name already exists")
+		}
 	}
 
 	fmt.Println("The new file's protection code: ")
 	var proCode string
 	_, err = fmt.Scan(&proCode)
+	fmt.Scanln()
 	if err != nil {
 		return err
 	}
@@ -216,11 +226,12 @@ func (f *FileSystem) Delete() error {
 	fmt.Println("Enter the name of file to be deleted: ")
 	var name string
 	_, err := fmt.Scan(&name)
+	fmt.Scanln()
 	if err != nil {
 		return err
 	}
 
-	err = f.OwnerMainFileDir.Delete(name)
+	_, err = f.OwnerMainFileDir.Delete(name)
 	if err != nil {
 		return err
 	}
@@ -233,9 +244,11 @@ func (f *FileSystem) Open() error {
 	if len(f.AccessFileDirs) > 5 {
 		return errors.New("the amount of opening files is up to 5")
 	}
+
 	fmt.Println("Enter the name of file to be opened: ")
 	var name string
 	_, err := fmt.Scan(&name)
+	fmt.Scanln()
 	if err != nil {
 		return err
 	}
@@ -248,12 +261,17 @@ func (f *FileSystem) Open() error {
 	fmt.Println("Enter the open mode: ")
 	var proCode string
 	_, err = fmt.Scan(&proCode)
+	fmt.Scanln()
 	if err != nil {
 		return err
 	}
+	// 检查proCode是否合法
+	if len(proCode) != 3 || !isZeroOrOne(proCode) {
+		return errors.New("protection code is invalid")
+	}
 
 	fileNumber := len(f.AccessFileDirs) + 1
-	afd := &AccessFileDir{Number: fileNumber, FileDir: ufd, ProCode: proCode}
+	afd := &AccessFileDir{Number: fileNumber, FileDir: ufd, ProCode: proCode, State: OPENING}
 	f.AccessFileDirs = append(f.AccessFileDirs, afd)
 
 	fmt.Printf("File %s opened, number %d \n", name, fileNumber)
@@ -265,6 +283,7 @@ func (f *FileSystem) Close() error {
 	fmt.Println("Enter the name of file to be closed: ")
 	var name string
 	_, err := fmt.Scan(&name)
+	fmt.Scanln()
 	if err != nil {
 		return err
 	}
@@ -283,6 +302,7 @@ func (f *FileSystem) Read() error {
 	fmt.Println("Enter the name of file to read: ")
 	var name string
 	_, err := fmt.Scan(&name)
+	fmt.Scanln()
 	if err != nil {
 		return err
 	}
@@ -305,6 +325,7 @@ func (f *FileSystem) Write() error {
 	fmt.Println("Enter the name of file to write: ")
 	var name string
 	_, err := fmt.Scan(&name)
+	fmt.Scanln()
 	if err != nil {
 		return err
 	}
@@ -318,11 +339,12 @@ func (f *FileSystem) Write() error {
 			fmt.Println("How many characters to be written into the file? ")
 			var length int
 			_, err = fmt.Scan(&length)
+			fmt.Scanln()
 			if err != nil {
 				return err
 			}
 			afd.FileDir.Len += length
-			fmt.Printf("file %s is written", name)
+			fmt.Printf("file %s is written \n", name)
 			return nil
 		}
 	}
@@ -338,7 +360,7 @@ func (f *FileSystem) Update() error {
 	}
 	defer fh.Close()
 
-	jsonData, err := json.MarshalIndent(f.MainFileDirs, "", "  ")
+	jsonData, err := json.MarshalIndent(f.MainFileDirs, "", "  ") // 格式化
 	if err != nil {
 		return err
 	}
@@ -353,20 +375,31 @@ func (f *FileSystem) Update() error {
 // Run 入口函数
 func (f *FileSystem) Run() {
 	f.ShowFiles()
+	inputReader := bufio.NewReader(os.Stdin)
 	for {
 		flag := true
-		fmt.Println("What would you like to do?")
-		var command Command
-		_, err := fmt.Scan(&command)
+		fmt.Println("\nWhat would you like to do?")
+
+		commandLine, err := inputReader.ReadString('\n')
+		commandLine = strings.TrimSpace(commandLine)
 		if err != nil {
-			fmt.Println("Error while inputting Command: ", err)
-			os.Exit(1)
+			log.Fatal("Error while inputting command: ", err)
 		}
-		switch command {
+
+		commandParts := strings.Fields(commandLine)
+		command := commandParts[0]
+		var mode string
+		if len(commandParts) >= 2 {
+			mode = commandParts[1]
+		}
+
+		switch Command(command) {
 		case SHOW:
-			f.ShowFiles()
-		case SHOW_OPENING:
-			f.ShowOpeningFiles()
+			if mode == "-o" {
+				f.ShowOpeningFiles()
+			} else {
+				f.ShowFiles()
+			}
 		case CREATE:
 			err = f.Create()
 			if err != nil {
