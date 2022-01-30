@@ -359,7 +359,7 @@ func (f *FileSystem) Update() error {
 		return errors.New("can't open file_example")
 	}
 	defer fh.Close()
-
+	// 将内存中的mfd转成json格式
 	jsonData, err := json.MarshalIndent(f.MainFileDirs, "", "  ") // 格式化
 	if err != nil {
 		return err

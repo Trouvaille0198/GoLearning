@@ -3,7 +3,10 @@ package oslearning
 import (
 	"fmt"
 	"goLearning/utils"
+	"io/ioutil"
 	"math/rand"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -30,7 +33,7 @@ type AddressStream struct {
 // @param addressNum 指令个数
 // @param virtualMemorySize 虚存大小 以k为单位
 // @isRandom 地址流随机生成或使用真实进程的地址流
-func NewAddressStream(addressNum int, virtualMemorySize int, isRandom bool) *AddressStream {
+func NewAddressStream(addressNum int, virtualMemorySize int, isRandom bool) (*AddressStream, error) {
 	addresses := make([]int, addressNum)
 	virtualMemorySize *= 1024
 	if isRandom {
@@ -53,9 +56,19 @@ func NewAddressStream(addressNum int, virtualMemorySize int, isRandom bool) *Add
 			}
 		}
 	} else {
-		// TODO 采用真实地址流
+		// 采用真实地址流
+		f, err := ioutil.ReadFile("./pids.txt")
+		if err != nil {
+			return &AddressStream{}, err
+		}
+		for i, addr := range strings.Split(string(f), ",")[:addressNum] {
+			addresses[i], err = strconv.Atoi(addr)
+			if err != nil {
+				panic("error when reading address file")
+			}
+		}
 	}
-	return &AddressStream{length: addressNum, addresses: addresses}
+	return &AddressStream{length: addressNum, addresses: addresses}, nil
 }
 
 // GetAddressPages
@@ -84,10 +97,13 @@ type PageReplacer struct {
 // @param virtualMemorySize 虚存大小 以k为单位
 // @param pageSize 页大小 以k为单位
 // @param internalSize 内存能容纳页的个数
-func NewPageReplacer(addressNum int, virtualMemorySize int, pageSize int, internalSize int, isRandom bool) *PageReplacer {
-	addressStream := NewAddressStream(addressNum, virtualMemorySize, isRandom)
+func NewPageReplacer(addressNum int, virtualMemorySize int, pageSize int, internalSize int, isRandom bool) (*PageReplacer, error) {
+	addressStream, err := NewAddressStream(addressNum, virtualMemorySize, isRandom)
+	if err != nil {
+		return &PageReplacer{}, err
+	}
 	addressPage := addressStream.GetAddressPages(pageSize)
-	return &PageReplacer{pageSize: pageSize, addressPages: addressPage, internalSize: internalSize}
+	return &PageReplacer{pageSize: pageSize, addressPages: addressPage, internalSize: internalSize}, nil
 }
 
 func (r PageReplacer) OPT() float32 {
