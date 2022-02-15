@@ -1,4 +1,4 @@
-package oslearning
+package page_replacement
 
 import (
 	"fmt"

@@ -1,4 +1,4 @@
-package oslearning
+package page_replacement
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ func TestAlphaReader(t *testing.T) {
 		for j := 0; j < 8; j++ {
 			pageSize := j + 1
 			r, _ := NewPageReplacer(
-				addressNum, virtualMemorySize, pageSize, internalSize, false)
+				addressNum, virtualMemorySize, pageSize, internalSize, true)
 			r.DisplayResult()
 		}
 		fmt.Println()

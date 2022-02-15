@@ -1,4 +1,4 @@
-package oslearning
+package file_system
 
 // 一些情况
 // 文件以ufd结构体形式保存
@@ -20,15 +20,14 @@ import (
 type Command string
 
 const (
-	SHOW         Command = "show"
-	SHOW_OPENING Command = "showo"
-	CREATE       Command = "create"
-	DELETE       Command = "delete"
-	OPEN         Command = "open"
-	CLOSE        Command = "close"
-	READ         Command = "read"
-	WRITE        Command = "write"
-	BYE          Command = "bye"
+	SHOW   Command = "show"
+	CREATE Command = "create"
+	DELETE Command = "delete"
+	OPEN   Command = "open"
+	CLOSE  Command = "close"
+	READ   Command = "read"
+	WRITE  Command = "write"
+	BYE    Command = "bye"
 )
 
 type FileState string
