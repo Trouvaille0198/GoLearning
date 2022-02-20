@@ -96,10 +96,11 @@ type AccessFileDir struct {
 }
 
 type FileSystem struct {
+	// 记录当前用户的信息
 	UserName         string           // 用户名
 	OwnerMainFileDir *MainFileDir     // 用户的mfd
 	AccessFileDirs   []*AccessFileDir // 正在运行的文件目录
-
+	// 记录一些全局信息
 	MainFileDirs []*MainFileDir // 所有mfd 用于程序退出时更新外存内容
 	FilePath     string         // 外存地址
 }
@@ -190,6 +191,10 @@ func (f *FileSystem) ShowOpeningFiles() {
 
 // Create 创建文件
 func (f *FileSystem) Create() error {
+	if len(f.OwnerMainFileDir.UserFileDirs) > 10 {
+		return errors.New("the amount of files is up to 10, cannot create new file")
+	}
+
 	fmt.Println("The new file's name: ")
 	var name string
 	_, err := fmt.Scan(&name)
@@ -234,6 +239,15 @@ func (f *FileSystem) Delete() error {
 	if err != nil {
 		return err
 	}
+
+	// 文件可能被打开 故要遍历一遍afd
+	for i, afd := range f.AccessFileDirs {
+		if afd.FileDir.Name == name {
+			f.AccessFileDirs = append(f.AccessFileDirs[:i], f.AccessFileDirs[i+1:]...)
+			break
+		}
+	}
+
 	fmt.Printf("File %s is deleted \n", name)
 	return nil
 }

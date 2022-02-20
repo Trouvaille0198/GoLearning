@@ -3,11 +3,6 @@
     "owner": "Bob",
     "userFileDirs": [
       {
-        "name": "a",
-        "proCode": "101",
-        "len": 42
-      },
-      {
         "name": "b",
         "proCode": "100",
         "len": 99
@@ -15,12 +10,17 @@
       {
         "name": "abc",
         "proCode": "111",
-        "len": 0
+        "len": 45
       },
       {
         "name": "f1.txt",
         "proCode": "111",
         "len": 128
+      },
+      {
+        "name": "123",
+        "proCode": "000",
+        "len": 0
       }
     ]
   },
