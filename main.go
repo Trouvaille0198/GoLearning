@@ -2,15 +2,23 @@ package main
 
 import (
 	"fmt"
-	"goLearning/oslearning/file_system"
-	"os"
+	"time"
 )
 
 func main() {
-	cwd, _ := os.Getwd()
-	fileSystem, err := file_system.NewFileSystem(cwd + "\\oslearning\\file_system\\file_example.json")
-	if err != nil {
-		fmt.Println(err)
+	var ball = make(chan string)
+	kickBall := func(playerName string) {
+		for {
+			fmt.Print(<-ball, "传球", "\n")
+			time.Sleep(time.Second)
+			ball <- playerName
+		}
 	}
-	fileSystem.Run()
+	go kickBall("张三")
+	go kickBall("李四")
+	go kickBall("王二麻子")
+	go kickBall("刘大")
+	ball <- "裁判"    // 开球
+	var c chan bool // 一个零值nil通道
+	<-c             // 永久阻塞在此
 }
