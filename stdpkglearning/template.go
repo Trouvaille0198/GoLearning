@@ -5,30 +5,14 @@ import (
 	"text/template"
 )
 
-func main() {
-	jobConfig := `
-	apiVersion: batch/v1
-	kind: Job
-	metadata:
-	name: blender-model-proccess-1831
-	spec:
-	template:
-		spec:
-		containers:
-			- name: blender
-			image: gocsuntianye/blender-test:2206151637
-			command:
-				[
-				"/app/blender/blender",
-				"-b",
-				]
-		restartPolicy: Never
-	`
+func Template() {
 	t1 := template.New("t1")
-	t1, err := t1.Parse(jobConfig)
+	t1, err := t1.Parse("Value is {{.}}\n")
 	if err != nil {
 		panic(err)
 	}
+
+	t1 = template.Must(t1.Parse("Value: {{.}}\n"))
 
 	t1.Execute(os.Stdout, "some text")
 	t1.Execute(os.Stdout, 5)
