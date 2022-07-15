@@ -8,39 +8,39 @@ import "sort"
 
 // threeSum 排序+双指针
 func threeSum(nums []int) [][]int {
+	if len(nums) < 3 {
+		return [][]int{}
+	}
 	sort.Ints(nums)
-	result := make([][]int, 0)
+	res := make([][]int, 0)
 
-	for index := 1; index < len(nums)-1; index++ {
-		start, end := 0, len(nums)-1
-		if index > 1 && nums[index] == nums[index-1] {
-			// 考虑index重复的情况
-			start = index - 1
+	for i := 0; i < len(nums)-2; i++ {
+		a := nums[i]
+		if a > 0 {
+			break
 		}
-
-		for start < index && end > index {
-			// 跳过重复项
-			if start > 0 && nums[start] == nums[start-1] {
-				start++
-				continue
-			}
-			if end < len(nums)-1 && nums[end] == nums[end+1] {
-				end--
-				continue
-			}
-
-			addNum := nums[start] + nums[end] + nums[index]
-			switch {
-			case addNum == 0:
-				result = append(result, []int{nums[start], nums[index], nums[end]})
-				start++
-				end--
-			case addNum > 0:
-				end--
-			default:
-				start++
+		if i > 0 && nums[i] == nums[i-1] {
+			// 避免i重复
+			continue
+		}
+		l, r := i+1, len(nums)-1
+		for l < r {
+			b, c := nums[l], nums[r]
+			if a+b+c > 0 {
+				r--
+			} else if a+b+c < 0 {
+				l++
+			} else {
+				res = append(res, []int{a, b, c})
+				// 避免l或r重复
+				for l < r && nums[l] == b {
+					l++
+				}
+				for r > l && nums[r] == c {
+					r--
+				}
 			}
 		}
 	}
-	return result
+	return res
 }
