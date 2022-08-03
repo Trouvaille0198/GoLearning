@@ -7,8 +7,14 @@ func wordBreak(s string, wordDict []string) bool {
 		wordMap[w] = true
 	}
 
+	// 记录重复递归的结果
+	dfsMap := make(map[string]bool)
+
 	var dfs func(leftS string) bool
 	dfs = func(leftS string) bool {
+		if r, ok := dfsMap[leftS]; ok {
+			return r
+		}
 		if leftS == "" {
 			return true
 		}
@@ -18,6 +24,7 @@ func wordBreak(s string, wordDict []string) bool {
 				res = dfs(leftS[i:]) || res
 			}
 		}
+		dfsMap[leftS] = res
 		return res
 	}
 
